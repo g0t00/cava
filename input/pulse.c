@@ -31,7 +31,7 @@ void cb(__attribute__((unused)) pa_context *pulseaudio_context, const pa_server_
 void pulseaudio_context_state_callback(pa_context *pulseaudio_context,
                                                   void *userdata) {
 
-	//make sure loop is ready	
+	//make sure loop is ready
 	switch (pa_context_get_state(pulseaudio_context))
 	{
 	case PA_CONTEXT_UNCONNECTED:
@@ -56,9 +56,9 @@ void pulseaudio_context_state_callback(pa_context *pulseaudio_context,
 	exit(EXIT_FAILURE);
 	break;
 	case PA_CONTEXT_TERMINATED:
-	printf("TERMINATED\n");
+	// printf("TERMINATED\n");
 	pa_mainloop_quit(m_pulseaudio_mainloop, 0);
-	break;	
+	break;
 	}
 }
 
@@ -105,7 +105,7 @@ void getPulseDefaultSink(void* data) {
         }
 
 	pa_mainloop_run(m_pulseaudio_mainloop, &ret);
-	
+
 
 }
 
@@ -165,7 +165,7 @@ void* input_pulse(void* data)
                                 if (n == 2048 - 1)n = 0;
                         }
 
-		if (audio->terminate == 1) {            		
+		if (audio->terminate == 1) {
 			pa_simple_free(s);
 			break;
 		    }

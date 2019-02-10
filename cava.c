@@ -285,8 +285,8 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 
 
 	// general: console title
-	printf("%c]0;%s%c", '\033', PACKAGE, '\007');
-	
+	// printf("%c]0;%s%c", '\033', PACKAGE, '\007');
+
 	configPath[0] = '\0';
 
 	setlocale(LC_ALL, "");
@@ -338,6 +338,7 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 	//fft: planning to rock
 	fftw_complex outl[M / 2 + 1];
 	fftw_plan pl =  fftw_plan_dft_r2c_1d(M, inl, outl, FFTW_MEASURE);
+	fftw_execute(pl);
 
 	fftw_complex outr[M / 2 + 1];
 	fftw_plan pr =  fftw_plan_dft_r2c_1d(M, inr, outr, FFTW_MEASURE);
@@ -352,6 +353,9 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
     	fprintf(stderr, "Error loading config. %s", error.message);
         exit(EXIT_FAILURE);
 	}
+	p.om = 4;
+	p.data_format = "binary";
+	p.stereo = 0;
 
     output_mode = p.om;
 
@@ -478,85 +482,54 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 			f[i] = 0;
 		}
 
-		#ifdef NCURSES
-		//output: start ncurses mode
-		if (p.om == 1 || p.om ==  2) {
-			init_terminal_ncurses(p.color, p.bcolor, p.col,
-			p.bgcol, p.gradient, p.gradient_count, p.gradient_colors,&w, &h);
-			//get_terminal_dim_ncurses(&w, &h);
-		}
-		#endif
 
-		if (p.om == 3) get_terminal_dim_noncurses(&w, &h);
 
 		height = (h - 1) * 8;
 
 		// output open file/fifo for raw output
 		if (p.om == 4) {
 
-			if (strcmp(p.raw_target,"/dev/stdout") != 0) {
-
-				//checking if file exists
-				if( access( p.raw_target, F_OK ) != -1 ) {
-					//testopening in case it's a fifo
-					fptest = open(p.raw_target, O_RDONLY | O_NONBLOCK, 0644);
-	
-					if (fptest == -1) {
-						printf("could not open file %s for writing\n",
-							p.raw_target);
-						exit(1);
-					}
-				} else {
-					printf("creating fifo %s\n",p.raw_target);
-					if (mkfifo(p.raw_target, 0664) == -1) {
-						printf("could not create fifo %s\n",
-							p.raw_target);
-						exit(1);
-					}
-					//fifo needs to be open for reading in order to write to it
-					fptest = open(p.raw_target, O_RDONLY | O_NONBLOCK, 0644);
-				}
-		    }
-
-			fp = open(p.raw_target, O_WRONLY | O_NONBLOCK | O_CREAT, 0644);
-			if (fp == -1) {
-				printf("could not open file %s for writing\n",p.raw_target);
-				exit(1);
-			}
-			printf("open file %s for writing raw ouput\n",p.raw_target);
+			// if (strcmp(p.raw_target,"/dev/stdout") != 0) {
+			//
+			// 	//checking if file exists
+			// 	if( access( p.raw_target, F_OK ) != -1 ) {
+			// 		//testopening in case it's a fifo
+			// 		fptest = open(p.raw_target, O_RDONLY | O_NONBLOCK, 0644);
+			//
+			// 		if (fptest == -1) {
+			// 			printf("could not open file %s for writing\n",
+			// 				p.raw_target);
+			// 			exit(1);
+			// 		}
+			// 	} else {
+			// 		printf("creating fifo %s\n",p.raw_target);
+			// 		if (mkfifo(p.raw_target, 0664) == -1) {
+			// 			printf("could not create fifo %s\n",
+			// 				p.raw_target);
+			// 			exit(1);
+			// 		}
+			// 		//fifo needs to be open for reading in order to write to it
+			// 		fptest = open(p.raw_target, O_RDONLY | O_NONBLOCK, 0644);
+			// 	}
+		  //   }
+			//
+			// fp = open(p.raw_target, O_WRONLY | O_NONBLOCK | O_CREAT, 0644);
+			// if (fp == -1) {
+			// 	printf("could not open file %s for writing\n",p.raw_target);
+			// 	exit(1);
+			// }
+			// printf("open file %s for writing raw ouput\n",p.raw_target);
 
             //width must be hardcoded for raw output.
 			w = 200;
-
-    		if (strcmp(p.data_format, "binary") == 0) {
-                height = pow(2, p.bit_format) - 1;
-            } else {
-                height = p.ascii_range;
-            }
+			height = pow(2, p.bit_format) - 1;
 
 
 
 		}
 
  		//handle for user setting too many bars
-		if (p.fixedbars) {
-			p.autobars = 0;
-			if (p.fixedbars * p.bw + p.fixedbars * p.bs - p.bs > w) p.autobars = 1;
-		}
-
-		//getting orignial numbers of barss incase of resize
-		if (p.autobars == 1)  {
-			bars = (w + p.bs) / (p.bw + p.bs);
-			//if (p.bs != 0) bars = (w - bars * p.bs + p.bs) / bw;
-		} else bars = p.fixedbars;
-
-
-		if (bars < 1) bars = 1; // must have at least 1 bars
-        if (bars > 200) bars = 200; // cant have more than 200 bars
-
-		if (p.stereo) { //stereo must have even numbers of bars
-			if (bars%2 != 0) bars--;
-		}
+		bars = 200;
 
 
 
@@ -606,7 +579,7 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 			lcf[n] = fre[n] * (M /2);
 			if (n != 0) {
 				hcf[n - 1] = lcf[n] - 1;
-	
+
 				//pushing the spectrum up if the expe function gets "clumped"
 				if (lcf[n] <= lcf[n - 1])lcf[n] = lcf[n - 1] + 1;
 				hcf[n - 1] = lcf[n] - 1;
@@ -755,7 +728,7 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 					fl = monstercat_filter(fl, bars / 2, p.waves,
 					 	p.monstercat);
 					fr = monstercat_filter(fr, bars / 2, p.waves,
-						p.monstercat);	
+						p.monstercat);
 				} else {
 					fl = monstercat_filter(fl, bars, p.waves, p.monstercat);
 				}
@@ -836,7 +809,7 @@ as of 0.4.0 all options are specified in config file, see in '/home/username/.co
 				if (o == bars - 1) p.sens = p.sens * 1.002;
 				}
 			}
-			
+
 			// output: draw processed input
 			#ifndef DEBUG
 				switch (p.om) {
